@@ -66,6 +66,9 @@ AUTO_CONFIG = 'auto'
 CONFIGURE_CONFIG = 'configure'
 CMAKE_CONFIG = 'cmake'
 
+BB_ARCH_ARM = 'arm'
+BB_ARCH_X86 = 'x86'
+
 
 class ConfigInfo(object):
   """Configuration information for how to build the dependencies."""
@@ -74,7 +77,7 @@ class ConfigInfo(object):
     """Initialize Configuration Information.
 
     Args:
-      abs_root_dir: (sring) The path tot he build root directory.
+      abs_root_dir: (string) The path tot he build root directory.
       unused_argv: (string) The program arguments, including argv[0].
     """
     self._abs_root_dir = '%s' % abs_root_dir
@@ -85,11 +88,12 @@ class ConfigInfo(object):
     self._download_dir = os.path.join(abs_root_dir, 'external_dependencies')
     self._abs_install_dir = '%s' % os.path.join(
         os.getcwd(), os.path.join('external_dependencies', 'install'))
+    self._build_arch = '%s' % BB_ARCH_ARM
 
     self._compiler = GCC_COMPILER
     if os.name == 'nt':
       self._port_name = WINDOWS_PLATFORM
-      self._compiler = VS_COMPILER
+#      self._compiler = VS_COMPILER
     elif platform.system() == 'Darwin':
       self._port_name = OSX_PLATFORM
     elif platform.system() == 'Linux':
@@ -118,6 +122,8 @@ class ConfigInfo(object):
       elif opt == '-i':
         do_all = False
         self._install_packages = True
+      elif opt == '-s': # Simulator
+        self._build_arch = '%s' % BB_ARCH_X86
       elif opt == '--force':
         self._force = True
       elif opt == '--download_dir':
@@ -180,12 +186,14 @@ class ConfigInfo(object):
   @property
   def make_command(self):
     """A tuple of (make_program_path, make_argument_list) for using Make."""
-    if os.name == 'nt':
-      program = 'nmake'
-      args = '/C'
-    else:
-      program = 'make'
-      args = ''
+    program = 'make'
+    args = ''
+#    if os.name == 'nt':
+#      program = 'nmake'
+#      args = '/C'
+#    else:
+#      program = 'make'
+#      args = ''
 
     return (program, args)
 
@@ -194,10 +202,9 @@ class ConfigInfo(object):
     """A tuple of (cmake_program_path, cmake_argument_list) for using CMake."""
     if os.name == 'nt':
       program = 'cmake'
-      args = '-G "NMake Makefiles"'
     else:
       program = os.path.join(self._abs_install_dir, 'bin', 'cmake')
-      args = ''
+    args = '-DCMAKE_TOOLCHAIN_FILE="../../blackberry.toolchain.cmake" -DGFLAGS_INCLUDE_DIRS="../install/include" -DBLACKBERRY_ARCHITECTURE=%s -G "Eclipse CDT4 - Unix Makefiles"' % self._build_arch
 
     return (program, args)
 
@@ -611,14 +618,14 @@ class PackageInstaller(object):
     """
     install_instructions = ''
     args = '--version'
-    if os.name == 'nt':
-      args = '/C /HELP'
-      install_instructions = (
-          'If you are using Visual Studio, try running the vcvars.bat script '
-          ' for the version of Visual Studio you wish to use. '
-          ' For 64-bit Visual Studio 11.0 this is something like '
-          ' C:\\"Program Files (x86)"\\"Microsoft Visual Studio 11.0"'
-          '\\VC\\bin\\x86_amd64\\vcvars64.bat')
+#    if os.name == 'nt':
+#      args = '/C /HELP'
+#      install_instructions = (
+#          'If you are using Visual Studio, try running the vcvars.bat script '
+#          ' for the version of Visual Studio you wish to use. '
+#          ' For 64-bit Visual Studio 11.0 this is something like '
+#          ' C:\\"Program Files (x86)"\\"Microsoft Visual Studio 11.0"'
+#          '\\VC\\bin\\x86_amd64\\vcvars64.bat')
 
     if not cls._VerifyProgram(make_program, args):
       print('Make sure that "%s" is in your path. %s' % (
@@ -683,12 +690,13 @@ class MongoosePackageInstaller(PackageInstaller):
     if not os.path.exists(libdir):
       os.makedirs(libdir)
 
-    if config.port != WINDOWS_PLATFORM:
-      shutil.copy(os.path.join(self._package_path, 'libmongoose.a'), libdir)
-    else:
-      for ext in ['lib', 'pdb']:
-        shutil.copy(os.path.join(self._package_path, 'mongoose.%s' % ext),
-                    libdir)
+#    if config.port != WINDOWS_PLATFORM:
+#      shutil.copy(os.path.join(self._package_path, 'libmongoose.a'), libdir)
+#    else:
+#      for ext in ['lib', 'pdb']:
+#        shutil.copy(os.path.join(self._package_path, 'mongoose.%s' % ext),
+#                    libdir)
+    shutil.copy(os.path.join(self._package_path, 'libmongoose.a'), libdir)
 
 
 class JsonCppPackageInstaller(PackageInstaller):
@@ -713,7 +721,7 @@ class JsonCppPackageInstaller(PackageInstaller):
 
     src_path = os.path.join('src', 'lib_json')
     for elem in glob.glob('%s/*.cpp' % src_path):
-      allfiles = '%s "%s"' % (allfiles, elem)
+      allfiles = '%s "%s"' % (allfiles, elem.replace('\\', '/'))
 
     print '>>>  Creating CMakeLists.txt'
     with open('CMakeLists.txt', 'w') as f:
@@ -723,7 +731,7 @@ class JsonCppPackageInstaller(PackageInstaller):
       f.write('add_library(jsoncpp STATIC %s)\n' % allfiles)
 
   def Install(self):
-    """Copies the libraries nad header files to install the package."""
+    """Copies the libraries and header files to install the package."""
     config = self._config
     print '>>>  Installing %s' % self._package_name
     PackageInstaller.CopyAllFiles(
@@ -733,11 +741,12 @@ class JsonCppPackageInstaller(PackageInstaller):
     if not os.path.exists(libdir):
       os.makedirs(libdir)
 
-    if config.port != WINDOWS_PLATFORM:
-      shutil.copy('libjsoncpp.a', libdir)
-    else:
-      for ext in ['lib', 'pdb']:
-        shutil.copy('jsoncpp.%s' % ext, libdir)
+#    if config.port != WINDOWS_PLATFORM:
+#      shutil.copy('libjsoncpp.a', libdir)
+#    else:
+#      for ext in ['lib', 'pdb']:
+#        shutil.copy('jsoncpp.%s' % ext, libdir)
+    shutil.copy('libjsoncpp.a', libdir)
 
 
 class CMakeExeInstaller(PackageInstaller):
@@ -827,39 +836,11 @@ class GFlagsPackageInstaller(PackageInstaller):
   def __init__(self, config, url):
     """Standard PackageInstaller initializer."""
     super(GFlagsPackageInstaller, self).__init__(config, url)
-    self._archive_file = self._archive_file.replace('-no-svn-files', '')
-    self._package_name = self._package_name.replace('-no-svn-files', '')
-    self._package_path = self._package_path.replace('-no-svn-files', '')
-    self._msbuild_args = '/p:Configuration=Release;Platform=x86'
-    self._vc_upgrade_from_project_path = (
-        '%s\\vsprojects\\libgflags\\libgflags.vcproj' % self._package_path)
-    self._vc_project_path = self._vc_upgrade_from_project_path.replace(
-        '.vcproj', '.vcxproj')
-
-  def Install(self):
-    """Copis generated libs and headers into the install directory."""
-    config = self._config
-    if config.compiler != VS_COMPILER:
-      super(GFlagsPackageInstaller, self).Install()
-      return
-    print '>>>  Installing %s' % self._package_name
-    install_libdir = os.path.join(config.abs_install_dir, 'lib')
-    install_includedir = os.path.join(config.abs_install_dir,
-                                      'include', 'gflags')
-    if not os.path.exists(install_libdir):
-      os.makedirs(install_libdir)
-    if not os.path.exists(install_includedir):
-      os.makedirs(install_includedir)
-    PackageInstaller.CopyAllFiles(
-        os.path.join(self._package_path, 'src', 'windows', 'gflags'),
-        install_includedir)
-    release_dir = os.path.join(self._package_path,
-                               'vsprojects', 'libgflags', 'Release')
-    for ext in ['lib', 'dll', 'pdb']:
-      print 'renaming %s.%s' % (os.path.join(release_dir, 'libgflags'), ext)
-      shutil.copyfile(
-          '%s.%s' % (os.path.join(release_dir, 'libgflags'), ext),
-          '%s.%s' % (os.path.join(install_libdir, 'libgflags'), ext))
+    self._config_type = CMAKE_CONFIG
+    self._archive_file = 'gflags-' + self._archive_file[1:]
+    self._original_package_name = self._package_name
+    self._package_name = 'gflags-' + self._package_name[1:]
+    self._package_path = self._package_path.replace(self._original_package_name, self._package_name)
 
 
 class GMockPackageInstaller(PackageInstaller):
@@ -913,62 +894,27 @@ class GLogPackageInstaller(PackageInstaller):
   """Custom installer for the GLog package."""
 
   def __init__(self, config, url):
-    """Standard PackageInstaller initializer.
-
-    Args:
-      config: (ConfigInfo) Configuration information.
-      url: (string)  The URL to download from.
-    """
+    """Standard PackageInstaller initializer."""
     super(GLogPackageInstaller, self).__init__(config, url)
-    self._msbuild_args = '/p:Configuration=Release;Platform=x86'
-    self._vc_upgrade_from_project_path = (
-        '%s\\vsprojects\\libglog\\libglog.vcproj' % self._package_path)
-    self._vc_project_path = (
-        '%s\\vsprojects\\libglog\\libglog.vcxproj' % self._package_path)
-
-  def MaybeTweakAfterUnpackage(self):
-    """Tweaks a header file declaration under windows so it compiles."""
-    super(GLogPackageInstaller, self).MaybeTweakAfterUnpackage()
-    if self._config.compiler != VS_COMPILER:
-      return
-
-    logging_h_path = os.path.join(
-        self._package_path, 'src', 'windows', 'glog', 'logging.h')
-    changed = False
-    with open(logging_h_path, 'r') as f:
-      old_text = f.read()
-      text = old_text.replace('class LogStreamBuf',
-                              'class GOOGLE_GLOG_DLL_DECL LogStreamBuf')
-      changed = old_text != text
-
-    if changed:
-      with open(logging_h_path, 'w') as f:
-        f.write(text)
-      print 'Hacked %s' % logging_h_path
+    self._config_type = CMAKE_CONFIG
+    self._archive_file = 'glog-' + self._archive_file[4:]
+    self._original_package_name = self._package_name
+    self._package_name = 'google-glog-' + self._package_name
+    self._package_path = self._package_path.replace(self._original_package_name, self._package_name)
 
   def Install(self):
-    """Overrides install to copy the generated headers and libs."""
-    if self._config.port != WINDOWS_PLATFORM:
-      super(GLogPackageInstaller, self).Install()
-      return
-
+    """Copies the libraries and header files to install the package."""
     config = self._config
-    install_libdir = os.path.join(config.abs_install_dir, 'lib')
-    install_includedir = os.path.join(
-        config.abs_install_dir, 'include', 'glog')
-    print '>>>  Installing %s' % self._package_name
-    if not os.path.exists(install_libdir):
-      os.makedirs(install_libdir)
-    if not os.path.exists(install_includedir):
-      os.makedirs(install_includedir)
+    print '>>>  Installing glog'
     PackageInstaller.CopyAllFiles(
-        os.path.join(self._package_path, 'src', 'windows', 'glog'),
-        install_includedir)
-    release_dir = os.path.join(
-        self._package_path, 'vsprojects', 'libglog', 'Release')
-    for ext in ['lib', 'dll', 'pdb']:
-      shutil.copyfile('%s.%s' % (os.path.join(release_dir, 'libglog'), ext),
-                      '%s.%s' % (os.path.join(install_libdir, 'libglog'), ext))
+        os.path.join(self._package_path, 'include'),
+        os.path.join(config.abs_install_dir, 'include'))
+    libdir = os.path.join(config.abs_install_dir, 'lib')
+    if not os.path.exists(libdir):
+      os.makedirs(libdir)
+
+    libpath = os.path.join(libdir, 'libglog.a')
+    shutil.copy('libgoogle-glog.a', libpath)
 
 
 class CurlPackageInstaller(PackageInstaller):
@@ -1004,8 +950,6 @@ class Installer(object):
           'cmake': (CMakeExeInstaller(
               config,
               'http://www.cmake.org/files/v2.8/cmake-2.8.10.2-win32-x86.exe')),
-
-          'openssl': (IgnorePackageInstaller(config, 'ignoring_openssl')),
       })
     else:
       self._url_map.update({
@@ -1014,27 +958,23 @@ class Installer(object):
               config,
               'http://www.cmake.org/files/v2.8/cmake-2.8.10.2.tar.gz',
               config_type=CONFIGURE_CONFIG)),
-
-          # This is used both for curl https support and
-          # the OpenSslCodec library for the OpenSslCodec for data encryption.
-          # The OpenSslCodec is not requird so if you get an https transport
-          # from somewhere else then you do not need this dependency.
-          'openssl': (OpenSslPackageInstaller(
-              config, 'http://www.openssl.org/source/openssl-1.0.1e.tar.gz')),
           })
 
     self._url_map.update({
+        'openssl': (IgnorePackageInstaller(config, 'ignoring_openssl')),
+
+        'curl': (IgnorePackageInstaller(config, 'ignoring_curl')),
+
         # GFlags is only used for some examples.
         # Only used for tests and samples.
         'gflags': (GFlagsPackageInstaller(
             config,
-            'http://gflags.googlecode.com/files'
-            '/gflags-2.0-no-svn-files.tar.gz')),
+            'http://github.com/schuhschuh/gflags/archive/v2.1.1.tar.gz')),
 
         # GLog is the logging mechanism used through the client API
         'glog': (GLogPackageInstaller(
             config,
-            'http://google-glog.googlecode.com/files/glog-0.3.3.tar.gz')),
+            'https://github.com/rcmaniac25/google-glog/archive/bb-v0.3.3.tar.gz')),
 
         # GMock (and included GTest) are only used for tests, not runtime
         # Only used for tests.
@@ -1053,15 +993,12 @@ class Installer(object):
         'mongoose': (MongoosePackageInstaller(
             config,
             'https://mongoose.googlecode.com/files/mongoose-3.7.tgz')),
-
-        'curl': (CurlPackageInstaller(
-            config, 'http://curl.haxx.se/download/curl-7.30.0.tar.gz')),
         })
 
     # make sure cmake occurs first since others may depend on it
     if not self._restricted_packages:
       self._restricted_packages = self._url_map.keys()
-      ordered_packages = ['cmake', 'openssl']
+      ordered_packages = ['cmake']
       for p in ordered_packages:
         self._restricted_packages.remove(p)
       self._restricted_packages = ordered_packages + self._restricted_packages
