@@ -3,7 +3,7 @@ include(CheckCXXSourceCompiles)
 
 find_library(JSONCPP_LIBRARY
              NAMES jsoncpp libjsoncpp
-             HINTS "${CMAKE_PREFIX_PATH}/jsoncpp/lib"
+             HINTS "${CMAKE_PREFIX_PATH}/jsoncpp/lib" "${CMAKE_PREFIX_PATH}/lib"
              REQUIRED)
 message("  -- using libjsoncpp from ${JSONCPP_LIBRARY}")
 

@@ -904,17 +904,16 @@ class GLogPackageInstaller(PackageInstaller):
 
   def Install(self):
     """Copies the libraries and header files to install the package."""
+    super(GLogPackageInstaller, self).Install()
+
     config = self._config
-    print '>>>  Installing glog'
-    PackageInstaller.CopyAllFiles(
-        os.path.join(self._package_path, 'include'),
-        os.path.join(config.abs_install_dir, 'include'))
     libdir = os.path.join(config.abs_install_dir, 'lib')
     if not os.path.exists(libdir):
       os.makedirs(libdir)
 
-    libpath = os.path.join(libdir, 'libglog.a')
-    shutil.copy('libgoogle-glog.a', libpath)
+    libpathsrc = os.path.join(libdir, 'libgoogle-glog.a')
+    libpathdst = os.path.join(libdir, 'libglog.a')
+    shutil.move(libpathsrc, libpathdst)
 
 
 class CurlPackageInstaller(PackageInstaller):

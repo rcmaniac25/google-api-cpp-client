@@ -245,8 +245,39 @@ bool File::RecursivelyDeleteDir(const string& path) {
   DIR* dir = opendir(path.c_str());
   bool have_dir = dir != NULL;
   if (have_dir) {
-    struct dirent ent;
     struct dirent* prev = NULL;
+#ifdef BLACKBERRY
+    // XXX There is probably a better way to do this (as in handling the paths. Using stat to determine entry type is not really able to be replaced)
+    int nameMax = pathconf(path.c_str(), _PC_NAME_MAX);
+    if (nameMax == -1) {
+      nameMax = 255;
+    }
+    int direntLen = offsetof(struct dirent, d_name) + nameMax + 1;
+    char* entry = new char[direntLen];
+
+    struct stat st;
+    string entpath;
+    struct dirent* ent = (struct dirent*)entry;
+    while ((readdir_r(dir, ent, &prev) == 0) && prev) {
+      ent = prev; //XXX Not good... fix it
+      StringPiece name(ent->d_name);
+      if (name == "." || name == "..") continue;
+      
+      entpath = path.c_str();
+      entpath += '/';
+      entpath += ent->d_name;
+      if (stat(entpath.c_str(), &st) == -1) continue;
+
+      if (st.st_mode & S_IFDIR) {
+        subdirs.push_back(name.as_string());
+      } else {
+        files.push_back(name.as_string());
+      }
+    }
+
+    delete entry;
+#else
+    struct dirent ent;
     while ((readdir_r(dir, &ent, &prev) == 0) && prev) {
       ent = *prev;
       StringPiece name(ent.d_name);
@@ -259,6 +290,7 @@ bool File::RecursivelyDeleteDir(const string& path) {
         files.push_back(name.as_string());
       }
     }
+#endif
     closedir(dir);
   }
 #endif

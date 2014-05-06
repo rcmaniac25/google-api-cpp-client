@@ -446,7 +446,9 @@ TEST_F(HttpTransportTestFixture, TestReuse) {
   EXPECT_TRUE(got_status.ok());
 
   // We cannot reuse without explicitly resetting.
+  #ifdef GTEST_HAS_DEATH_TEST
   EXPECT_DEATH(get_method->Execute().IgnoreError(), "");
+  #endif
 
   // But once we do then we can execute again usng the same response...
   EXPECT_TRUE(

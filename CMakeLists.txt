@@ -41,6 +41,9 @@ else()
   set(GLOG_LIBRARY glog)
   set(GFLAGS_LIBRARY gflags)
   set(CURL_LIBRARY curl)
+  if (BLACKBERRY)
+    ADD_DEFINITIONS(-DBLACKBERRY)
+  endif()
 endif()
 
 include_directories(
