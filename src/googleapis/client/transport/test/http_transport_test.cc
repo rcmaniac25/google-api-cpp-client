@@ -875,7 +875,9 @@ TEST_F(HttpTransportFixture, TestCannotReuse) {
       .Times(2)
       .WillRepeatedly(InvokeWithoutArgs(set_http_code.get(), &Closure::Run));
   EXPECT_TRUE(mock_request.Execute().ok());
+  #ifdef GTEST_HAS_DEATH_TEST
   EXPECT_DEATH(mock_request.Execute().IgnoreError(), "");
+  #endif
   mock_request.Clear();
   EXPECT_TRUE(mock_request.Execute().ok());
 }

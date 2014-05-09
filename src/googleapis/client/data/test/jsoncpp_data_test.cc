@@ -324,6 +324,7 @@ TEST_F(JsonCppAdapterFixture, TestReadDict) {
     EXPECT_EQ(expect[key], value.Storage()) << key;
   }
 
+#ifdef GTEST_HAS_DEATH_TEST
   // We constructed the dict above as immutable
   // (giving it storage rather than &storage).
   // Test the immutability behavior.
@@ -333,6 +334,7 @@ TEST_F(JsonCppAdapterFixture, TestReadDict) {
   EXPECT_DEATH(dict.put("Bogus", value), "mutable");
 
   EXPECT_FALSE(dict.get("Bogus", &value));
+#endif
 }
 
 TEST_F(JsonCppAdapterFixture, TestAssociativeArrays) {
@@ -436,7 +438,9 @@ TEST_F(JsonCppAdapterFixture, TestReadArray) {
 
   EXPECT_EQ(kSize, array.size());
   EXPECT_EQ(&storage, &array.Storage());
+#ifdef GTEST_HAS_DEATH_TEST
   EXPECT_DEATH(array.MutableStorage(), "mutable");
+#endif
   for (int i = 0; i < kSize; ++i) {
     // Test the primitive getter
     EXPECT_EQ(10 * i, array.get(i));
@@ -545,7 +549,9 @@ TEST_F(JsonCppAdapterFixture, TestObjectArray) {
   EXPECT_EQ(readable_array[0], writable_array[0]);
 
   ExampleJsonObject test_get(writable_array.get(1));
+#ifdef GTEST_HAS_DEATH_TEST
   EXPECT_DEATH(test_get.set_number(-1), "mutable");
+#endif
 
   JsonCppArray<ExampleJsonObject>::const_iterator it = readable_array.begin();
   for (int i = 0; i < 2; ++i) {

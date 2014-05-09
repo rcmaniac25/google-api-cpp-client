@@ -34,7 +34,7 @@ namespace googleapis {
 
 using namespace googleapis;
 int main(int argc, char** argv) {
-  google::ParseCommandLineFlags(&argc, &argv, false);   // init gflags
+  gflags::ParseCommandLineFlags(&argc, &argv, false);   // init gflags
   ::testing::InitGoogleTest(&argc, argv);               // init gtest
   client::HttpTransportLayerConfig config;
   client::HttpTransportFactory* factory =
