@@ -15,6 +15,7 @@ add_library(google_calendar_api STATIC
             calendar.cc
             calendar_list.cc
             calendar_list_entry.cc
+            calendar_notification.cc
             channel.cc
             color_definition.cc
             colors.cc
