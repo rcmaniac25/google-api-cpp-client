@@ -82,8 +82,8 @@ class MockData : public SerializableJson {
   MockData() {}
   ~MockData() {}
 
-  MOCK_CONST_METHOD0(has_nextPageToken, bool());
-  MOCK_CONST_METHOD0(get_nextPageToken, string());
+  MOCK_CONST_METHOD0(has_next_page_token, bool());
+  MOCK_CONST_METHOD0(get_next_page_token, string());
 
   MOCK_METHOD0(Clear, void());
   MOCK_METHOD1(LoadFromJsonReader, util::Status(DataReader* reader));
@@ -100,10 +100,10 @@ class FakeRequest : public ClientServiceRequest {
     return ClientServiceRequest::ExecuteAndParseResponse(data);
   }
 
-  bool has_pageToken() const { return next_.get() != NULL; }
-  const string get_pageToken() const { return next_.get() ? *next_ : ""; }
-  void set_pageToken(const string& next) { next_.reset(new string(next)); }
-  void clear_pageToken() { next_.reset(NULL); }
+  bool has_page_token() const { return next_.get() != NULL; }
+  const string get_page_token() const { return next_.get() ? *next_ : ""; }
+  void set_page_token(const string& next) { next_.reset(new string(next)); }
+  void clear_page_token() { next_.reset(NULL); }
 
  private:
   scoped_ptr<string> next_;
@@ -161,7 +161,7 @@ TEST_F(PagerTestFixture, OnePageResults) {
 
   EXPECT_CALL(data, Clear()).WillOnce(Return());
   EXPECT_CALL(data, LoadFromJsonReader(_)).WillOnce(Return(StatusOk()));
-  EXPECT_CALL(data, get_nextPageToken()).WillOnce(Return(""));
+  EXPECT_CALL(data, get_next_page_token()).WillOnce(Return(""));
 
   scoped_ptr<DoExecuteType> callback(
       NewPermanentCallback(&SetBodyReaderAndHttpCode, "ignored", 200));
@@ -169,14 +169,14 @@ TEST_F(PagerTestFixture, OnePageResults) {
       .WillOnce(Invoke(callback.get(), &DoExecuteType::Run));
 
   EXPECT_TRUE(pager.NextPage());
-  EXPECT_FALSE(request.has_pageToken());
+  EXPECT_FALSE(request.has_page_token());
   EXPECT_EQ(&data, pager.data());
   EXPECT_EQ(&request, pager.request());
   EXPECT_TRUE(pager.is_done());
 
   // Attempting to continue just returns without invoking any methods.
   EXPECT_FALSE(pager.NextPage());
-  EXPECT_FALSE(request.has_pageToken());
+  EXPECT_FALSE(request.has_page_token());
 
   pager.Reset();
   EXPECT_FALSE(pager.is_done());
@@ -203,34 +203,34 @@ TEST_F(PagerTestFixture, MultiPageResults) {
   EXPECT_CALL(*mock_request, DoExecute(_))
       .WillRepeatedly(Invoke(callback.get(), &DoExecuteType::Run));
 
-  EXPECT_CALL(data, get_nextPageToken()).WillOnce(Return("MORE"));
+  EXPECT_CALL(data, get_next_page_token()).WillOnce(Return("MORE"));
   EXPECT_EQ("", pager.peek_next_page_token());
   EXPECT_TRUE(pager.NextPage());
   EXPECT_EQ("MORE", pager.peek_next_page_token());
-  EXPECT_FALSE(request.has_pageToken());
+  EXPECT_FALSE(request.has_page_token());
   EXPECT_EQ(&data, pager.data());
   EXPECT_EQ(&request, pager.request());
   EXPECT_FALSE(pager.is_done());
 
   // Attempting to continue will grab the next page
-  EXPECT_CALL(data, get_nextPageToken()).WillOnce(Return(""));
+  EXPECT_CALL(data, get_next_page_token()).WillOnce(Return(""));
   EXPECT_TRUE(pager.NextPage());
   EXPECT_TRUE(pager.is_done());
-  EXPECT_TRUE(request.has_pageToken());
-  EXPECT_EQ("MORE", request.get_pageToken());
+  EXPECT_TRUE(request.has_page_token());
+  EXPECT_EQ("MORE", request.get_page_token());
   EXPECT_EQ("", pager.peek_next_page_token());
 
   // Resetting undoes done and the lookahead page_token in the pager
   // (which is already empty here) but it does not affect the request.
   pager.Reset();
   EXPECT_FALSE(pager.is_done());
-  EXPECT_EQ("MORE", request.get_pageToken());
+  EXPECT_EQ("MORE", request.get_page_token());
 
   // Since we reset, we can execute again at which point it will
   // update the request.
-  EXPECT_CALL(data, get_nextPageToken()).WillOnce(Return("AGAIN"));
+  EXPECT_CALL(data, get_next_page_token()).WillOnce(Return("AGAIN"));
   EXPECT_TRUE(pager.NextPage());
-  EXPECT_EQ("", request.get_pageToken());
+  EXPECT_EQ("", request.get_page_token());
   EXPECT_EQ("AGAIN", pager.peek_next_page_token());
   EXPECT_FALSE(pager.is_done());
 

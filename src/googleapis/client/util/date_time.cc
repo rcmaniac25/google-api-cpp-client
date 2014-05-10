@@ -114,6 +114,7 @@ inline struct timeval make_timeval(time_t sec, int usec) {
 namespace client {
 static const struct timeval kInvalidTimeval_ =  make_timeval(-1, 0);
 const time_t DateTime::kInvalidEpoch_ = -1;
+const time_t Date::kInvalidEpoch_ = -1;
 
 DateTime DateTime::DateTimeFromUtc(const struct tm& utc) {
   struct tm copy = utc;  // timegm modifies the input!
@@ -232,6 +233,61 @@ string DateTime::ToString() const {
                       "%02d:%02d:%02d%sZ",
                       utc.tm_year + 1900, utc.tm_mon + 1, utc.tm_mday,
                       utc.tm_hour, utc.tm_min, utc.tm_sec, frac.c_str());
+}
+
+
+Date::Date() {
+  gettimeofday(&t_, NULL);
+  //TODO: no hours, seconds, etc. everything at midnight
+}
+
+Date::Date(const Date& date) : t_(date.t_) {
+}
+
+Date::Date(const string& date) {
+  struct tm utc;
+  memset(&utc, 0, sizeof(utc));
+
+#ifndef _MSC_VER
+  const char* format = "%Y-%m-%d";
+  const char* remaining = strptime(date.c_str(), format, &utc);
+#else
+  const char* remaining = date.c_str();
+  if (ParseIntComponent("", 4, &remaining, &utc.tm_year)
+      && ParseIntComponent("-", 2, &remaining, &utc.tm_mon)
+      && ParseIntComponent("-", 2, &remaining, &utc.tm_mday)) {
+    utc.tm_year -= 1900;
+    --utc.tm_mon;
+  } else {
+    remaining = NULL;
+  }
+#endif
+
+  if (!remaining) {
+    MarkInvalid();
+  } else if (remaining[0] == '\0') {
+    t_ = make_timeval(timegm(&utc), 0);
+  } else {
+    MarkInvalid();
+  }
+  if (!is_valid()) {
+    LOG(ERROR) << "Invalid date [" << date << "]";
+  }
+}
+
+Date::~Date() {
+}
+
+void Date::MarkInvalid() {
+  t_ = kInvalidTimeval_;
+}
+
+string Date::ToString() const {
+  struct tm utc;
+
+  gmtime_r(&t_.tv_sec, &utc);
+  return StringPrintf("%04d-%02d-%02d",
+                      utc.tm_year + 1900, utc.tm_mon + 1, utc.tm_mday);
 }
 
 }  // namespace client
