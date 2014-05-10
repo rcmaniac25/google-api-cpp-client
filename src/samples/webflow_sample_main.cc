@@ -981,7 +981,7 @@ util::Status SampleWebApplicationLoginFlow<C>::DoRespondWithLoginErrorPage(
 
 using namespace googleapis;
 int main(int argc, char* argv[]) {
-google::ParseCommandLineFlags(&argc, &argv, true);
+gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   SampleWebApplication app;
 

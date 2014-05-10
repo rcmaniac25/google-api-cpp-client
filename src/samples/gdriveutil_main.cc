@@ -557,7 +557,7 @@ class DriveCommandProcessor : public sample::CommandProcessor {
 
 using namespace googleapis;
 int main(int argc, char* argv[]) {
-google::ParseCommandLineFlags(&argc, &argv, true);
+gflags::ParseCommandLineFlags(&argc, &argv, true);
 
   if (FLAGS_client_secrets_path.empty()) {
     LOG(ERROR) << "--client_secrets_path not set";

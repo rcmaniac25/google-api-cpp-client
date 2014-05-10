@@ -14,6 +14,7 @@ target_link_libraries(calendar_sample googleapis_utils)
 if (HAVE_OPENSSL)
 target_link_libraries(calendar_sample googleapis_openssl_codec)
 endif()
+target_link_libraries(calendar_sample ${GLOG_LIBRARY})
 target_link_libraries(calendar_sample ${GFLAGS_LIBRARY})
 
 
