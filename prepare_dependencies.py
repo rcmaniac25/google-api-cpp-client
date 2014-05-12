@@ -28,6 +28,8 @@ Usage:
     [-b] Just build the dependent packages in the --download_dir
     [-d] Just download the dependent packages to the --download_dir
     [-i] Just install the dependencies to the --install_dir
+    [-s] Build for Simulator
+    [-k] Build with Dinkum C++
     [--force] Ignore any previous results and force the request from scratch.
     [--download_dir=<path>] Specifies the download_dir.
                             The default path is ./external_dependencies.
@@ -89,6 +91,7 @@ class ConfigInfo(object):
     self._abs_install_dir = '%s' % os.path.join(
         os.getcwd(), os.path.join('external_dependencies', 'install'))
     self._build_arch = '%s' % BB_ARCH_ARM
+    self._build_dinkum = False
 
     self._compiler = GCC_COMPILER
     if os.name == 'nt':
@@ -124,6 +127,8 @@ class ConfigInfo(object):
         self._install_packages = True
       elif opt == '-s': # Simulator
         self._build_arch = '%s' % BB_ARCH_X86
+      elif opt == '-k':
+        self._build_dinkum = True
       elif opt == '--force':
         self._force = True
       elif opt == '--download_dir':
@@ -145,6 +150,8 @@ class ConfigInfo(object):
       print '   Download packages = True'
     if self._install_packages:
       print '   Installing packages = True'
+    if self._build_dinkum:
+      print '   Building with Dinkum = True'
 
     if self._download_packages:
       print '   Downloading files to %s' % self._download_dir
@@ -204,7 +211,11 @@ class ConfigInfo(object):
       program = 'cmake'
     else:
       program = os.path.join(self._abs_install_dir, 'bin', 'cmake')
-    args = '-DCMAKE_TOOLCHAIN_FILE="../../blackberry.toolchain.cmake" -DGFLAGS_INCLUDE_DIRS="../install/include" -DBLACKBERRY_ARCHITECTURE=%s -G "Eclipse CDT4 - Unix Makefiles"' % self._build_arch
+    baseArgs = '-DCMAKE_TOOLCHAIN_FILE="../../blackberry.toolchain.cmake" -DGFLAGS_INCLUDE_DIRS="../install/include" -DBLACKBERRY_ARCHITECTURE=%s -G "Eclipse CDT4 - Unix Makefiles"' % self._build_arch
+    if self._build_dinkum:
+      args = '%s -DBLACKBERRY_DINKUM=On' % baseArgs
+    else:
+      args = baseArgs
 
     return (program, args)
 
@@ -871,6 +882,32 @@ class GMockPackageInstaller(PackageInstaller):
             insert_after, inject_flags))
         with open(cmake_utils_path, 'w') as f:
           f.write(text)
+    else:
+      # gmock doesn't support QNX, so change gtest-port.h so it
+      # recognizes the platform and works appropriately
+      gtest_port_path = os.path.join(
+          self._package_path, 'gtest', 'include', 'gtest', 'internal', 'gtest-port.h')
+      with open(gtest_port_path, 'r') as f:
+        text = f.read()
+      comment_qnx = '//   GTEST_OS_QNX      - QNX'
+      if text.find(comment_qnx) < 0:
+        comment_after = 'GTEST_OS_ZOS      - z/OS'
+        define_qnx = '#elif defined __QNX__\n# define GTEST_OS_QNX 1'
+        define_after = '# define GTEST_OS_ZOS 1'
+        pthread_qnx = '# define GTEST_HAS_PTHREAD (GTEST_OS_LINUX || GTEST_OS_MAC || GTEST_OS_HPUX || GTEST_OS_QNX)'
+        pthread_after = '# define GTEST_HAS_PTHREAD (GTEST_OS_LINUX || GTEST_OS_MAC || GTEST_OS_HPUX)'
+        death_qnx = 'GTEST_OS_WINDOWS_MINGW || GTEST_OS_AIX || GTEST_OS_HPUX || GTEST_OS_QNX)'
+        death_after = 'GTEST_OS_WINDOWS_MINGW || GTEST_OS_AIX || GTEST_OS_HPUX)'
+
+        text = text.replace(comment_after, '%s\n%s' % (
+            comment_after, comment_qnx))
+        text = text.replace(define_after, '%s\n%s' % (
+            define_after, define_qnx))
+        text = text.replace(pthread_after, pthread_qnx)
+        text = text.replace(death_after, death_qnx)
+
+        with open(gtest_port_path, 'w') as f:
+          f.write(text)
 
   def Configure(self):
     return
@@ -1034,10 +1071,10 @@ if __name__ == '__main__':
   restricted_packages = []
   try:
     opts, restricted_packages = getopt.getopt(
-        sys.argv[1:], 'bdi', ['download_dir=', 'install_dir=', 'force'])
+        sys.argv[1:], 'bdisk', ['download_dir=', 'install_dir=', 'force'])
     config_info.SetOptions(opts)
   except getopt.GetoptError:
-    print ('%s: [-b] [-d] [-i]' % sys.argv[0]
+    print ('%s: [-b] [-d] [-i] [-s] [-k]' % sys.argv[0]
            + '[--download_dir=<path>] [--install_dir=<path>] [--force]')
     sys.exit(1)
 
