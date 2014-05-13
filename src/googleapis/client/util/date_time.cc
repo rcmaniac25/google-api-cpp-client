@@ -100,6 +100,8 @@ time_t timegm(struct tm* tm) {
   SystemTimeToTimeval(systime, &t);
   return t.tv_sec;
 }
+#elif defined(BLACKBERRY_DINKUM)
+using std::isdigit;
 #endif
 
 inline struct timeval make_timeval(time_t sec, int usec) {

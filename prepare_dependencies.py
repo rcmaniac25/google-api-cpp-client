@@ -386,7 +386,7 @@ class PackageInstaller(object):
       tar.close()
 
     self.MaybeTweakAfterUnpackage()
-    print '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
+    print '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
 
   def DetermineConfigType(self, path):
     """Detemines how to configure the directory depending on files.
@@ -741,6 +741,36 @@ class JsonCppPackageInstaller(PackageInstaller):
       f.write('INCLUDE_DIRECTORIES(./include src/lib_json)\n')
       f.write('add_library(jsoncpp STATIC %s)\n' % allfiles)
 
+    if config._build_dinkum:
+      # bit of manual hackery to get this to compile
+      json_lib_path = os.path.join(
+          self._package_path, 'src', 'lib_json')
+
+      origin_text = 'namespace Json {'
+      replace_use = 'using std::memcpy;'
+
+      json_reader_path = os.path.join(json_lib_path, 'json_reader.cpp')
+      with open(json_reader_path, 'r') as f:
+        text = f.read()
+      if text.find(replace_use) < 0:
+        replace_text = '%s\n%s\n%s' % (
+            replace_use, 'using std::sscanf;', 'using std::sprintf;')
+        text = text.replace(origin_text, '%s\n\n%s' % (
+            replace_text, origin_text))
+        with open(json_reader_path, 'w') as f:
+          f.write(text)
+
+      json_value_path = os.path.join(json_lib_path, 'json_value.cpp')
+      with open(json_value_path, 'r') as f:
+        text = f.read()
+      if text.find(replace_use) < 0:
+        replace_text = '%s\n%s\n%s\n%s' % (
+            'using std::strlen;', 'using std::strcmp;', 'using std::strchr;', replace_use)
+        text = text.replace(origin_text, '%s\n\n%s' % (
+            replace_text, origin_text))
+        with open(json_value_path, 'w') as f:
+          f.write(text)
+
   def Install(self):
     """Copies the libraries and header files to install the package."""
     config = self._config
@@ -889,8 +919,9 @@ class GMockPackageInstaller(PackageInstaller):
           self._package_path, 'gtest', 'include', 'gtest', 'internal', 'gtest-port.h')
       with open(gtest_port_path, 'r') as f:
         text = f.read()
-      comment_qnx = '//   GTEST_OS_QNX      - QNX'
+      comment_qnx = 'GTEST_OS_QNX'
       if text.find(comment_qnx) < 0:
+        comment_qnx = '//   GTEST_OS_QNX      - QNX'
         comment_after = 'GTEST_OS_ZOS      - z/OS'
         define_qnx = '#elif defined __QNX__\n# define GTEST_OS_QNX 1'
         define_after = '# define GTEST_OS_ZOS 1'
@@ -939,6 +970,24 @@ class GLogPackageInstaller(PackageInstaller):
     self._package_name = 'google-glog-' + self._package_name
     self._package_path = self._package_path.replace(self._original_package_name, self._package_name)
 
+  def MaybeTweakAfterUnpackage(self):
+    config = self._config
+    if config._build_dinkum:
+      # bit of manual hackery to get this to compile
+      glog_lib_path = os.path.join(self._package_path, 'src')
+
+      origin_text = 'using std::string;'
+      sscanf_use = 'using std::sscanf;'
+
+      vlog_path = os.path.join(glog_lib_path, 'vlog_is_on.cc')
+      with open(vlog_path, 'r') as f:
+        text = f.read()
+      if text.find(sscanf_use) < 0:
+        text = text.replace(origin_text, '%s\n%s' % (
+            origin_text, sscanf_use))
+        with open(vlog_path, 'w') as f:
+          f.write(text)
+
   def Install(self):
     """Copies the libraries and header files to install the package."""
     super(GLogPackageInstaller, self).Install()
@@ -950,8 +999,7 @@ class GLogPackageInstaller(PackageInstaller):
 
     libpathsrc = os.path.join(libdir, 'libgoogle-glog.a')
     libpathdst = os.path.join(libdir, 'libglog.a')
-    shutil.move(libpathsrc, libpathdst)
-
+    shutil.copy(libpathsrc, libpathdst)
 
 class CurlPackageInstaller(PackageInstaller):
   def __init__(self, config, url):
@@ -985,14 +1033,14 @@ class Installer(object):
           # Use CMake as our build system for the libraries and some deps
           'cmake': (CMakeExeInstaller(
               config,
-              'http://www.cmake.org/files/v2.8/cmake-2.8.10.2-win32-x86.exe')),
+              'http://www.cmake.org/files/v2.8/cmake-2.8.12.2-win32-x86.exe')),
       })
     else:
       self._url_map.update({
           # Use CMake as our build system for the libraries and some deps
           'cmake': (PackageInstaller(
               config,
-              'http://www.cmake.org/files/v2.8/cmake-2.8.10.2.tar.gz',
+              'http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz',
               config_type=CONFIGURE_CONFIG)),
           })
 
@@ -1016,7 +1064,7 @@ class Installer(object):
         # Only used for tests.
         'gmock': (GMockPackageInstaller(
             config,
-            'http://googlemock.googlecode.com/files/gmock-1.6.0.zip')),
+            'http://googlemock.googlecode.com/files/gmock-1.7.0.zip')),
 
         # For now we use JsonCpp for JSON support in the Client Service Layer
         # and other places where we process JSON encoded data.
@@ -1028,7 +1076,7 @@ class Installer(object):
         # Mongoose is used as webserver for samples
         'mongoose': (MongoosePackageInstaller(
             config,
-            'https://mongoose.googlecode.com/files/mongoose-3.7.tgz')),
+            'https://mongoose.googlecode.com/files/mongoose-3.8.tgz')),
         })
 
     # make sure cmake occurs first since others may depend on it
