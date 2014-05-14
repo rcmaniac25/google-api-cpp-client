@@ -131,8 +131,10 @@ class MongooseRequest : public WebServerRequest {
     char* buffer = local_storage;
     MongooseResponse* webserver_response =
         static_cast<MongooseResponse*>(response());
+    const char* cookie = mg_get_header(
+        webserver_response->connection(), "Cookie");
     int result = mg_get_cookie(
-        webserver_response->connection(), key, buffer, sizeof(local_storage));
+        cookie, key, buffer, sizeof(local_storage));
 
     size_t size = 0;
     scoped_ptr<char[]> heap_storage;
@@ -141,7 +143,7 @@ class MongooseRequest : public WebServerRequest {
       heap_storage.reset(new char[size]);
       buffer = heap_storage.get();
       result =
-          mg_get_cookie(webserver_response->connection(), key, buffer, size);
+          mg_get_cookie(cookie, key, buffer, size);
     }
     if (result >= 0) {
       value->assign(buffer, result);
