@@ -41,9 +41,13 @@ in a turnkey build of the client libraries from the source code given only:
       make all
       make test
       make install
-    BlackBerry (`blackberry/v0.1` branch):
-      ./prepare_dependencies.py
-      ./external_dependencies/install/bin/cmake . -DCMAKE_TOOLCHAIN_FILE="./blackberry.toolchain.cmake" -DCMAKE_PREFIX_PATH="./external_dependencies/install" -DBLACKBERRY_ARCHITECTURE=arm -G "Eclipse CDT4 - Unix Makefiles"
+    BlackBerry (`blackberry/v0.1.2` branch):
+      GNU specific:
+        ./prepare_dependencies.py
+        ./external_dependencies/install/bin/cmake . -DCMAKE_TOOLCHAIN_FILE="./blackberry.toolchain.cmake" -DCMAKE_PREFIX_PATH="./external_dependencies/install" -DBLACKBERRY_ARCHITECTURE=arm -G "Eclipse CDT4 - Unix Makefiles"
+      Dinkum (and Cascades) specific:
+        ./prepare_dependencies.py -k
+        ./external_dependencies/install/bin/cmake . -DCMAKE_TOOLCHAIN_FILE="./blackberry.toolchain.cmake" -DCMAKE_PREFIX_PATH="./external_dependencies/install" -DBLACKBERRY_DINKUM=On -DBLACKBERRY_ARCHITECTURE=arm -G "Eclipse CDT4 - Unix Makefiles"
       make all
       make test
       make install

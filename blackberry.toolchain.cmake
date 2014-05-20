@@ -17,7 +17,12 @@ set( CMAKE_SYSTEM_VERSION 1 )
 
 # Check for PlayBook
 if( EXISTS "${BLACKBERRY_TARGET_ROOT}/x86/lib/gcc/4.4.2" )
-set( PLAYBOOK True )
+  set( PLAYBOOK True )
+endif()
+
+# Check for for GCC 4.8.2
+if( EXISTS "${BLACKBERRY_TARGET_ROOT}/x86/lib/gcc/4.8.2" )
+  set( BB_GCC_482 True )
 endif()
 
 # STL version: by default gnustl_static will be used
@@ -96,9 +101,13 @@ if( PLAYBOOK )
   set( BLACKBERRY_COMP_VERSION "4.4.2" )
 else()
   set( BLACKBERRY_COMP_DEF "-D__QNX__" )
-  set( BLACKBERRY_COMP_VERSION "4.6.3" )
+  if( BB_GCC_482 AND BLACKBERRY_USE_GCC_4_8 )
+    set( BLACKBERRY_COMP_VERSION "4.8.2" )
+  else()
+    set( BLACKBERRY_COMP_VERSION "4.6.3" )
+  endif()
 endif()
-if( DEFINED BLACKBERRY_DINKUM AND BLACKBERRY_DINKUM )
+if( BLACKBERRY_DINKUM )
   set( DINKUM 1 )
   set( BLACKBERRY_CXX_COMP_LIB "-Y_cpp" )
 else()

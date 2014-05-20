@@ -26,6 +26,9 @@ add_library(googleapis_internal STATIC
 ./util/status.cc
 )
 target_link_libraries(googleapis_internal ${GLOG_LIBRARY})
+if (BLACKBERRY AND BLACKBERRY_DINKUM)
+  target_link_libraries(googleapis_internal cpp)
+endif()
 install(TARGETS googleapis_internal DESTINATION ${GOOGLEAPIS_INSTALL_LIB_DIR})
 
 install(FILES 
