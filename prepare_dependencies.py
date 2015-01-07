@@ -1033,14 +1033,14 @@ class Installer(object):
           # Use CMake as our build system for the libraries and some deps
           'cmake': (CMakeExeInstaller(
               config,
-              'http://www.cmake.org/files/v2.8/cmake-2.8.12.2-win32-x86.exe')),
+              'http://www.cmake.org/files/v3.1/cmake-3.1.0-win32-x86.exe')),
       })
     else:
       self._url_map.update({
           # Use CMake as our build system for the libraries and some deps
           'cmake': (PackageInstaller(
               config,
-              'http://www.cmake.org/files/v2.8/cmake-2.8.12.2.tar.gz',
+              'http://www.cmake.org/files/v3.1/cmake-3.1.0.tar.gz',
               config_type=CONFIGURE_CONFIG)),
           })
 

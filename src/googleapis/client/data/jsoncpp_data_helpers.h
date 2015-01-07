@@ -289,30 +289,6 @@ inline void SetCppValueFromJsonValueHelper<DateTime>(
   *value = DateTime(storage.asString());
 }
 
-template<>
-inline void ClearCppValueHelper<Date>(Date* value) {
-  *value = Date();
-}
-template<>
-inline const Date JsonValueToCppValueHelper<Date>(
-    const Json::Value& value) {
-  return Date(value.asString());
-}
-template<>
-inline Date JsonValueToMutableCppValueHelper<Date>(Json::Value* value) {
-  return Date(value->asString());
-}
-template<>
-inline void SetJsonValueFromCppValueHelper<Date>(
-     const Date& val, Json::Value* storage) {
-  *storage = val.ToString().c_str();
-}
-template<>
-inline void SetCppValueFromJsonValueHelper<Date>(
-    const Json::Value& storage, Date* value) {
-  *value = Date(storage.asString());
-}
-
 // generic is for objects
 template<typename T>
 inline void ClearCppValueHelper(T* value) {

@@ -21,6 +21,7 @@ add_library(google_calendar_api STATIC
             colors.cc
             error.cc
             event.cc
+            event_attachment.cc
             event_attendee.cc
             event_date_time.cc
             event_reminder.cc
